@@ -13,9 +13,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import com.example.playaroundbasics.ui.theme.PlayAroundBasicsTheme
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import kotlin.time.Duration.Companion.milliseconds
 
 class MainActivity : ComponentActivity() {
@@ -35,16 +37,15 @@ class MainActivity : ComponentActivity() {
             }
         }
 
-        GlobalScope.launch {
-            // Suspends the coroutine until the network call is complete
-            val networkCall1 = doNetworkCall()
-            // Continue the coroutine
-            Log.d(TAG, "Network call 1 done: $networkCall1")
-            // Suspends again the coroutine until the network call is complete
-            val networkCall2 = doNetworkCall()
-            // Continue the coroutine again
-            Log.d(TAG, "Network call 2 done: $networkCall2")
-            // Total time here is 2000ms
+        // If not specified will choose the default dispatcher
+        // Let's select the IO one, since we'll mimic a network call
+        GlobalScope.launch(Dispatchers.IO) {
+            val response = doNetworkCall()
+            Log.d(TAG, "My response: $response")
+            // Need to switch the context to a UI thread context
+            withContext(Dispatchers.Main) {
+                Log.d(TAG, "Editing some ui element using: $response")
+            }
         }
     }
 
