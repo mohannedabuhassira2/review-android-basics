@@ -16,6 +16,7 @@ import com.example.playaroundbasics.ui.theme.PlayAroundBasicsTheme
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlin.time.Duration.Companion.milliseconds
 
 class MainActivity : ComponentActivity() {
     val TAG = "MainActivity"
@@ -34,19 +35,22 @@ class MainActivity : ComponentActivity() {
             }
         }
 
-        // GlobalScope is bad but let's just do that for now
-        // Idea is that this coroutine still lives until the app is killed which
-        // isn't the best with Android lifecycle
         GlobalScope.launch {
-            // Sleep here pauses the coroutine but not the thread
-            // So it'll suspend the coroutine until the work of this suspend function
-            // is done and then resume the coroutine
-            Log.d(TAG, "Hello from coroutine: ${Thread.currentThread().name}")
-            delay(1000L)
-            Log.d(TAG, "Hello from coroutine: ${Thread.currentThread().name}")
+            // Suspends the coroutine until the network call is complete
+            val networkCall1 = doNetworkCall()
+            // Continue the coroutine
+            Log.d(TAG, "Network call 1 done: $networkCall1")
+            // Suspends again the coroutine until the network call is complete
+            val networkCall2 = doNetworkCall()
+            // Continue the coroutine again
+            Log.d(TAG, "Network call 2 done: $networkCall2")
+            // Total time here is 2000ms
         }
+    }
 
-        Log.d(TAG, "Hello from thread: ${Thread.currentThread().name}")
+    private suspend fun doNetworkCall(): String {
+        delay(1000L.milliseconds)
+        return "This is a response"
     }
 }
 
