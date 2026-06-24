@@ -18,7 +18,6 @@ import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
-import kotlinx.coroutines.withContext
 import kotlin.time.Duration.Companion.milliseconds
 
 class MainActivity : ComponentActivity() {
@@ -39,42 +38,28 @@ class MainActivity : ComponentActivity() {
         }
 
         /*
-        runBlocking does this:
-        1. Launches a new coroutine in main
-        2. Keeps the coroutine glued when a suspend function is called, so that
-           functionality is broken here and that forces the main thread to be blocked
-        We use it mostly for unit testing to ensure we block the main thread
-        Before we continue, understand that launch is fire and forget and not really a suspend function
-        What will happen:
-        1. runBlocking comes into action
-        2. Launches a new coroutine in main that'll run concurently in IO
-        3. Launches a second coroutine in main that'll run concurently in IO
-        4. runBlocking will interact with the 1st supsend function delay and will block the main thread for 1s
-        5. After 1s, "runBlocking block 'main' code finished at 1000ms" will be printed
-        6. Both of the courotines will be finished that are launched in IO
-        7. All childs are done and the whole runBlocking coroutine is done, so the last log will be printed
-
-        Changing to a regular launch on top instead of runBlocking will have the last log to be printed immediately
+        join: Suspend and wait until the job is done
+        cancel: Cancel the job
+        A Job transitions through: New -> Active -> Completing -> Completed (or Cancelled).
+        Calling job.cancel() does NOT instantly kill the coroutine.
+        It simply sets the job's "isCancelled" flag to true.
+        Cancellation is COOPERATIVE: The coroutine must "check" this flag to stop.
+        The coroutine needs a breathing room to "check" this flag to stop, which happens during suspension
+        So, if the job is running a heavy non suspendable work (e.g. fib(50)), the check will take a long time.
          */
 
-        GlobalScope.launch {
-            Log.d(TAG, "Starting runBlocking...")
-
-            launch(Dispatchers.IO) {
-                delay(3000.milliseconds)
-                Log.d(TAG, "Child 1 finished at 3000ms")
+        val job = GlobalScope.launch(Dispatchers.Default) {
+            repeat(5) {
+                Log.d(TAG, "Coroutine is still working...")
+                delay(1000L.milliseconds)
             }
-
-            launch(Dispatchers.IO) {
-                delay(3000.milliseconds)
-                Log.d(TAG, "Child 2 finished at 3000ms")
-            }
-
-            delay(1000.milliseconds)
-            Log.d(TAG, "runBlocking block 'main' code finished at 1000ms")
         }
 
-        Log.d(TAG, "The whole thing is done")
+        runBlocking {
+            delay(3000L.milliseconds)
+            job.cancel()
+            Log.d(TAG, "Main Thread is continuing...")
+        }
     }
 }
 
