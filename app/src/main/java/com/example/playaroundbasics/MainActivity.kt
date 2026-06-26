@@ -5,13 +5,18 @@ import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.Button
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.lifecycle.lifecycleScope
 import com.example.playaroundbasics.ui.theme.PlayAroundBasicsTheme
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
@@ -29,35 +34,53 @@ class MainActivity : ComponentActivity() {
         setContent {
             PlayAroundBasicsTheme {
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    Greeting(
-                        name = "Android",
-                        modifier = Modifier.padding(innerPadding)
-                    )
+                    Box (
+                        modifier = Modifier.padding(innerPadding).fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Button (
+                            onClick = {
+                                finish()
+                            }
+                        ) {
+                            Text("Click me to destroy the activity")
+                        }
+                    }
                 }
             }
         }
 
-        /*
-        async block launches a coroutine that returns a deferred object as the result of the last operation.
-        Allow us to run parallel suspend functions inside the coroutine
-        async is on the same level as launch, the difference:
-        1. launch returns a job like we saw before -> we can join it or cancel it
-        2. async returns a deferred object of some generic type as a result
-        To get the result of this deferred object, call wait on it, which will wait until it is ready
-        */
-
-        GlobalScope.launch(Dispatchers.IO) {
-            val response1 = async(Dispatchers.IO) { doNetworkCall() }
-            Log.d(TAG, "response1: ${response1.await()}")
-            val response2 = async(Dispatchers.IO) { doNetworkCall() }
-            Log.d(TAG, "response1: ${response2.await()}")
+        GlobalScope.launch {
+            while (true) {
+                Log.d(TAG, "Doing something bad here cause if the activity is destroyed, we'll still use resources of the activity -> memory leak")
+                delay(1000.milliseconds)
+            }
         }
-    }
-}
 
-private suspend fun doNetworkCall(): String {
-    delay(1000.milliseconds)
-    return "Response"
+        lifecycleScope.launch {
+            while (true) {
+                Log.d(TAG, "Instead we scope the lifecycle to the scope of the activity")
+                delay(1000.milliseconds)
+            }
+        }
+
+        // viewModelScope work in a similar fashion for view models
+    }
+
+    override fun onPause() {
+        Log.d(TAG, "onPause")
+        super.onPause()
+    }
+
+    override fun onStop() {
+        Log.d(TAG, "onStop")
+        super.onStop()
+    }
+
+    override fun onDestroy() {
+        Log.d(TAG, "onDestroy")
+        super.onDestroy()
+    }
 }
 
 @Composable
