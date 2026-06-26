@@ -10,7 +10,10 @@ import androidx.lifecycle.viewmodel.viewModelFactory
 import com.example.playaroundbasics.data.ApiResult
 import com.example.playaroundbasics.data.model.Post
 import com.example.playaroundbasics.domain.PostsRepository
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.launch
+import kotlin.time.Duration.Companion.milliseconds
 
 internal class MainViewModel(
     private val postsRepository: PostsRepository
@@ -18,8 +21,24 @@ internal class MainViewModel(
     private val _posts = mutableStateOf<ApiResult<List<Post>>>(ApiResult.Progress)
     val posts: State<ApiResult<List<Post>>> = _posts
 
+    val countDown = flow {
+        for (i in 10 downTo 0) {
+            emit(i)
+            delay(1000.milliseconds)
+        }
+    }
+
     init {
+        collectFlow()
         loadPosts()
+    }
+
+    private fun collectFlow() {
+        viewModelScope.launch {
+            countDown.collect {
+                println("collectFlow: $it")
+            }
+        }
     }
 
     fun loadPosts() {
