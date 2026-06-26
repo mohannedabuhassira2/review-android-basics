@@ -15,13 +15,13 @@ import androidx.compose.ui.tooling.preview.Preview
 import com.example.playaroundbasics.ui.theme.PlayAroundBasicsTheme
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.async
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
 import kotlin.time.Duration.Companion.milliseconds
 
 class MainActivity : ComponentActivity() {
-    val TAG = "MainActivity"
+    val TAG = "MainActivityLogs"
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -38,29 +38,26 @@ class MainActivity : ComponentActivity() {
         }
 
         /*
-        join: Suspend and wait until the job is done
-        cancel: Cancel the job
-        A Job transitions through: New -> Active -> Completing -> Completed (or Cancelled).
-        Calling job.cancel() does NOT instantly kill the coroutine.
-        It simply sets the job's "isCancelled" flag to true.
-        Cancellation is COOPERATIVE: The coroutine must "check" this flag to stop.
-        The coroutine needs a breathing room to "check" this flag to stop, which happens during suspension
-        So, if the job is running a heavy non suspendable work (e.g. fib(50)), the check will take a long time.
-         */
+        async block launches a coroutine that returns a deferred object as the result of the last operation.
+        Allow us to run parallel suspend functions inside the coroutine
+        async is on the same level as launch, the difference:
+        1. launch returns a job like we saw before -> we can join it or cancel it
+        2. async returns a deferred object of some generic type as a result
+        To get the result of this deferred object, call wait on it, which will wait until it is ready
+        */
 
-        val job = GlobalScope.launch(Dispatchers.Default) {
-            repeat(5) {
-                Log.d(TAG, "Coroutine is still working...")
-                delay(1000L.milliseconds)
-            }
-        }
-
-        runBlocking {
-            delay(3000L.milliseconds)
-            job.cancel()
-            Log.d(TAG, "Main Thread is continuing...")
+        GlobalScope.launch(Dispatchers.IO) {
+            val response1 = async(Dispatchers.IO) { doNetworkCall() }
+            Log.d(TAG, "response1: ${response1.await()}")
+            val response2 = async(Dispatchers.IO) { doNetworkCall() }
+            Log.d(TAG, "response1: ${response2.await()}")
         }
     }
+}
+
+private suspend fun doNetworkCall(): String {
+    delay(1000.milliseconds)
+    return "Response"
 }
 
 @Composable
